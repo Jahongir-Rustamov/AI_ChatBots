@@ -360,6 +360,12 @@ const AITab = ({ analyses, evaluation, isLoading }) => {
         : typeof evaluation?.summary === "string" ? evaluation.summary : null;
     const advices = Array.isArray(evaluation?.advices) ? evaluation.advices : [];
 
+    // Helper: display emotion — handles both English keys and Uzbek strings from AI
+    const displayEmotion = (val) => {
+        if (!val || val === 'Not detected') return '—';
+        return EMOTION_MAP[val] ?? val; // if not in map, show as-is (e.g. "G'azab")
+    };
+
     return (
         <div className="space-y-5">
             {/* AI Summary */}
@@ -394,7 +400,7 @@ const AITab = ({ analyses, evaluation, isLoading }) => {
             )}
 
             {/* Latest analysis + riskLevel */}
-            {latest && riskStyle && (
+            {latest && (
                 <div className="rounded-2xl border p-5" style={{ background: riskStyle.bg, borderColor: riskStyle.border }}>
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
@@ -409,7 +415,7 @@ const AITab = ({ analyses, evaluation, isLoading }) => {
                     <div className="grid grid-cols-2 gap-3 mb-3">
                         <div className="bg-white/5 rounded-xl p-3">
                             <p className="text-xs text-gray-500 mb-1">Hissiyot</p>
-                            <p className="text-sm font-bold text-white">{em(latest.detectedEmotion)}</p>
+                            <p className="text-sm font-bold text-white">{displayEmotion(latest.detectedEmotion)}</p>
                         </div>
                         <div className="bg-white/5 rounded-xl p-3">
                             <p className="text-xs text-gray-500 mb-1">Sentiment</p>
@@ -418,7 +424,7 @@ const AITab = ({ analyses, evaluation, isLoading }) => {
                             </p>
                         </div>
                     </div>
-                    {typeof latest.suggestions === "string" && (
+                    {latest.suggestions && typeof latest.suggestions === "string" && latest.suggestions.trim() && (
                         <div className="bg-white/5 rounded-xl p-3 mb-2">
                             <p className="text-xs text-gray-500 mb-1">AI tavsiya</p>
                             <p className="text-sm text-gray-300 leading-relaxed">{latest.suggestions}</p>

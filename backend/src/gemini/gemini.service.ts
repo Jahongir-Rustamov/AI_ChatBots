@@ -16,9 +16,9 @@ export class GeminiService {
     }
 
     async analyzeAndChat(userMessage: string, chatHistory: { senderRole: string; content: string }[]) {
-        try {
+        return this.withRetry(async () => {
             const model = this.genAI.getGenerativeModel({
-                model: 'gemini-3-flash-preview'
+                model: 'gemini-2.5-flash-lite'
             });
 
             const systemPrompt = `Siz "MindCare AI" — O'zbekistonning birinchi professional ruhiy salomatlik yordamchisisiz. Siz klinikalik psixologiya, kognitiv-xulq terapiyasi (CBT) va mindfulness asosida ishlaysiz. Faqat O'ZBEK TILIDA muloqot qilasiz.
@@ -81,15 +81,12 @@ Javobni FAQAT quyidagi JSON formatida qaytaring, boshqa hech narsa qo'shmang:
                 parts: [{ text: h.content }],
             }));
 
-            // Prepend system prompt to the first user message or as a separate turn if supported,
-            // but here we'll just prepend it to the context if history is empty or to the first message.
             if (formattedHistory.length === 0) {
                 formattedHistory.push({
                     role: 'user',
                     parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}\n\nFoydalanuvchi: ${userMessage}` }],
                 });
             } else {
-                // If there's history, we'll try to keep the system instruction at the very beginning
                 formattedHistory.unshift({
                     role: 'user',
                     parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}` }],
@@ -105,26 +102,11 @@ Javobni FAQAT quyidagi JSON formatida qaytaring, boshqa hech narsa qo'shmang:
             const responseText = result.response.text();
 
             return this.extractJSON(responseText);
-        } catch (error: any) {
-            console.error('\n=============================================');
-            console.error('❌ Gemini API Xatolik (Chat tuguni)');
-            console.error('=============================================');
-
-            console.error('🛑 Xato xabari:', error?.message || error);
-            console.error('=============================================\n');
-
-            // Fallback info for the user (More user-friendly strings)
-            const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
-            const errorMessage = isQuotaError
-                ? 'Kechirasiz, so\'rovlar limiti tugadi. Iltimos, 1-2 daqiqa dam oling va keyin qayta urinib ko\'ring. 😊'
-                : 'Hozirda AI xizmatida biroz texnik nosozlik yuz berdi. Iltimos, birozdan so\'ng qayta urinib ko\'ring. ✨';
-
-            throw new InternalServerErrorException(errorMessage);
-        }
+        }, 'Chat tuguni');
     }
 
     async generateProfileSummary(moodData: any[], analysisData: any[]) {
-        try {
+        return this.withRetry(async () => {
             const model = this.genAI.getGenerativeModel({
                 model: 'gemini-2.5-flash-lite',
             });
@@ -153,18 +135,37 @@ chartData qismi foydalanuvchining hissiyotlarining uchrash foizi yoki soni (umum
             const responseText = result.response.text();
 
             return this.extractJSON(responseText);
-        } catch (error: any) {
-            console.error('\n=============================================');
-            console.error('❌ Gemini API Xatolik (Profil Xulosasi)');
-            console.error('=============================================');
+        }, 'Profil Xulosasi');
+    }
 
+    private async withRetry<T>(fn: () => Promise<T>, context: string, retries = 3, delay = 1000): Promise<T> {
+        try {
+            return await fn();
+        } catch (error: any) {
+            const isRetryable =
+                error?.status === 503 ||
+                error?.status === 429 ||
+                error?.message?.includes('503') ||
+                error?.message?.includes('429') ||
+                error?.message?.includes('high demand') ||
+                error?.message?.includes('quota');
+
+            if (isRetryable && retries > 0) {
+                console.warn(`⚠️ Gemini API (${context}) band yoki xatolik. Qayta urinish... (${retries} qoldi). Delay: ${delay}ms`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.withRetry(fn, context, retries - 1, delay * 2);
+            }
+
+            console.error('\n=============================================');
+            console.error(`❌ Gemini API Xatolik (${context})`);
+            console.error('=============================================');
             console.error('🛑 Xato xabari:', error?.message || error);
             console.error('=============================================\n');
 
             const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
             const errorMessage = isQuotaError
-                ? 'AI xulosa shakllantirish limitiga yetdi. Iltimos biroz kuting. ⏳'
-                : 'Profil xulosasini yaratishda biroz xatolik yuz berdi. Keyinroq qayta urinib ko\'ring. 🔄';
+                ? 'Kechirasiz, so\'rovlar limiti tugadi. Iltimos, bir oz kuting va keyin qayta urinib ko\'ring. 😊'
+                : 'Hozirda AI xizmatida vaqtinchalik nosozlik yuz berdi. Iltimos, birozdan so\'ng qayta urinib ko\'ring. ✨';
 
             throw new InternalServerErrorException(errorMessage);
         }
@@ -173,35 +174,57 @@ chartData qismi foydalanuvchining hissiyotlarining uchrash foizi yoki soni (umum
     private extractJSON(text: string) {
         let cleanedText = text;
         try {
-            // Remove markdown syntax if present
+            // 1. Remove markdown syntax if present (```json ... ```)
             const markdownMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
             if (markdownMatch) {
                 cleanedText = markdownMatch[1];
             } else {
-                // Find the first '{' and the last '}'
+                // 2. Find the first '{' and the last '}'
                 const firstBrace = text.indexOf('{');
                 const lastBrace = text.lastIndexOf('}');
                 if (firstBrace !== -1 && lastBrace !== -1) {
                     cleanedText = text.substring(firstBrace, lastBrace + 1);
+                } else {
+                    // 3. AI returned plain text (no JSON at all) — wrap it
+                    console.warn('⚠️ AI javob JSON formatida kelmadi. Matn wrap qilinmoqda.');
+                    return {
+                        reply: text.trim(),
+                        emotion: 'Neytral',
+                        sentimentScore: 0,
+                        riskLevel: 'LOW',
+                        suggestions: '',
+                        confidence: 0.5,
+                    };
                 }
             }
 
-            // Further clean common AI mistakes
+            // Clean common AI mistakes
             cleanedText = cleanedText
-                .replace(/\\"/g, '"') // sometimes AI double-escapes quotes
+                .replace(/\\"/g, '"') // some models double-escape
                 .trim();
 
             return JSON5.parse(cleanedText);
         } catch (error) {
             console.error('\n=============================================');
             console.error('❌ JSON Parsing Error');
-            console.error('=============================================');
             console.error('Raw AI Response:', text);
-            console.error('Cleaned Text:', cleanedText);
             console.error('Error Details:', error);
             console.error('=============================================\n');
 
-            throw new Error('Javobni tahlil qilishda xatolik yuz berdi (Invalid JSON format)');
+            // 4. Final fallback: parsing failed but text exists — wrap it
+            if (text && text.trim().length > 0) {
+                console.warn('⚠️ JSON parse failed. Fallback: matnni reply sifatida qaytarish.');
+                return {
+                    reply: text.trim(),
+                    emotion: 'Xatolik',
+                    sentimentScore: 0,
+                    riskLevel: 'LOW',
+                    suggestions: '',
+                    confidence: 0.5,
+                };
+            }
+
+            throw new Error('Javobni tahlil qilishda xatolik yuz berdi');
         }
     }
 }
