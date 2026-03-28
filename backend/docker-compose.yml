@@ -1,0 +1,13 @@
+services:
+  ai_chatbot:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: AI_ChatBot
+      POSTGRES_PASSWORD: order03
+      POSTGRES_DB: AI_ChatBot
+    ports:
+      - '5433:5432'
+    networks:
+      - freecodecamp
+networks:
+  freecodecamp:

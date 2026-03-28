@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "typescript"
+  ],
+  // Prettier specific
+  "prettier.singleQuote": false, // "" ishlatish uchun
+  "prettier.semi": true,
+  "prettier.trailingComma": "es5",
+  "prettier.arrowParens": "always"
+}

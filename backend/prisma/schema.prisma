@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  chats       Chat[]
+  moodLogs    MoodLog[]
+  aiAnalysis  AIAnalysis[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+}
+
+
+model Chat {
+  id        String    @id @default(uuid())
+  title     String?
+  createdAt DateTime  @default(now())
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages  Message[]
+}
+
+
+model Message {
+  id         String    @id @default(uuid())
+  content    String    @db.Text
+  senderRole SenderRole
+  sentiment  String?
+  emotion    String?
+  confidence Float?
+  createdAt  DateTime  @default(now())
+
+  chatId     String
+  chat       Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  aiAnalysis AIAnalysis[]
+}
+
+
+model MoodLog {
+  id              String   @id @default(uuid())
+  dominantEmotion String
+  sentimentScore  Float
+  stressLevel     Int
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model AIAnalysis {
+  id             String   @id @default(uuid())
+  detectedEmotion String
+  sentimentScore  Float
+  riskLevel       RiskLevel
+  suggestions     String   @db.Text
+  createdAt       DateTime @default(now())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messageId       String
+  message         Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SenderRole {
+  USER
+  ASSISTANT
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
