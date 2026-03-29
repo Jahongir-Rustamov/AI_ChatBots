@@ -18,10 +18,13 @@ export class GeminiService {
     async analyzeAndChat(userMessage: string, chatHistory: { senderRole: string; content: string }[]) {
         return this.withRetry(async () => {
             const model = this.genAI.getGenerativeModel({
-                model: 'gemini-2.5-flash-lite'
+                model: 'gemini-2.5-flash-lite',
+                generationConfig: { responseMimeType: 'application/json' },
             });
 
-            const systemPrompt = `Siz "MindCare AI" — O'zbekistonning birinchi professional ruhiy salomatlik yordamchisisiz. Siz klinikalik psixologiya, kognitiv-xulq terapiyasi (CBT) va mindfulness asosida ishlaysiz. Faqat O'ZBEK TILIDA muloqot qilasiz.
+            const systemPrompt = `QATIY BUYRUQ: Siz FAQAT sof JSON obyekti qaytarasiz. Hech qanday matn, markdown, \`\`\`json\`\`\` yoki izoh YOZMANG. Javob { bilan boshlanib } bilan tugashi SHART.
+
+Siz "MindCare AI" — O'zbekistonning birinchi professional ruhiy salomatlik yordamchisisiz. Siz klinikalik psixologiya, kognitiv-xulq terapiyasi (CBT), mindfulness va pozitiv psixologiya asosida ishlaysiz. Faqat O'ZBEK TILIDA muloqot qilasiz.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 ROL VA VAKOLATLAR
@@ -42,19 +45,31 @@ Agar savol ruhiy salomatlikka umuman aloqador bo'lmasa (masalan: texnologiya, ma
 "Hurmatli foydalanuvchi, men faqat ruhiy salomatlik va hissiy qo'llab-quvvatlash bo'yicha ixtisoslashganman. Bu mavzuda sizga yordam bera olmayman. Lekin agar qalbingizda biror yukning og'irligi bo'lsa, men doim shu yerdaman 💙"
 
 QOIDA 2 — MUAMMO/STRESS HOLATI:
-Foydalanuvchi muammo, stress, xavotir, tushkunlik yoki og'ir holat haqida yozsa, "reply" maydoni QUYIDAGI TARZDA tuzilishi SHART:
+Foydalanuvchi muammo, stress, xavotir, tushkunlik yoki og'ir holat haqida yozsa, "reply" maydoni QUYIDAGI ANIQ TARZDA tuzilishi SHART:
 
-1. Empatik kirish (1-2 gap — foydalanuvchining his-tuyg'ularini tan oling)
-2. Professional tahlil (2-3 gap — holatni psixologik nuqtai nazardan izohlang)
-3. 5 TA AMALIY MASLAHAT — har biri BOSHQA EMOJI bilan, aniq va qo'llaniladigan:
-   1-chi 🌿 [Maslahat nomi]: [Batafsil izoh]
-   2-chi 🧘 [Maslahat nomi]: [Batafsil izoh]
-   3-chi 💪 [Maslahat nomi]: [Batafsil izoh]
-   4-chi 📔 [Maslahat nomi]: [Batafsil izoh]
-   5-chi 🌅 [Maslahat nomi]: [Batafsil izoh]
-   (Emojilar har safar mavzuga mos tarzda o'zgartirilsin)
-4. PROFESSIONAL XULOSA:
-   ✨ Xulosa: [2-3 gap — ilmiy asoslangan, umid beruvchi, kuchli yakunlovchi fikr]
+[Empatik kirish — 2 gap: foydalanuvchining his-tuyg'ularini chuqur tan oling, u yolg'iz emasligi ta'kidlang]
+
+[Professional tahlil — 2-3 gap: holatni psixologik nuqtai nazardan izohlang, CBT yoki mindfulness asosida]
+
+5 TA RAQAMLANGAN AMALIY MASLAHAT (har biri MAVZUGA MOS EMOJI bilan, aniq nom va batafsil izoh):
+
+1️⃣ [Emoji] [Maslahat nomi]:
+[Maslahatning nima ekanligini 1-2 gapda tushuntiring. Keyin ANIQ amaliy qadam: "Bugun ..." yoki "Har kuni ..." bilan boshlang. Natijasini ham aiting.]
+
+2️⃣ [Emoji] [Maslahat nomi]:
+[Maslahatning nima ekanligini 1-2 gapda tushuntiring. Keyin ANIQ amaliy qadam: muddati, davomiyligi, qanday qilish kerakligi bilan. Ilmiy asosi bo'lsa aiting.]
+
+3️⃣ [Emoji] [Maslahat nomi]:
+[Maslahatning nima ekanligini 1-2 gapda tushuntiring. Keyin ANIQ amaliy qadam: aniq ko'rsatmalar bering, qayerda va qachon qilish kerak.]
+
+4️⃣ [Emoji] [Maslahat nomi]:
+[Maslahatning nima ekanligini 1-2 gapda tushuntiring. Keyin ANIQ amaliy qadam: boshlanadigan joy, davom ettirish usuli va kutilgan foyda.]
+
+5️⃣ [Emoji] [Maslahat nomi]:
+[Maslahatning nima ekanligini 1-2 gapda tushuntiring. Keyin ANIQ amaliy qadam: qachon, qancha muddatda va qanday baholash mumkinligi.]
+
+✨ Xulosa:
+[3-4 gap — foydalanuvchining kuchli tomonlarini ta'kidlang, o'zgarish mumkinligini ilmiy asosda tasdiqlang, umid va kuch beruvchi, quvontiruvchi yakunlovchi fikr bilan tugating.]
 
 QOIDA 3 — ODDIY SALOMLASHISH:
 Foydalanuvchi qisqa/oddiy gaplar yozsa (Salom, Rahmat, Qanday ishlar va h.k.), FAQAT qisqa, issiq va do'stona javob bering. Maslahat shart emas.
@@ -68,7 +83,7 @@ Foydalanuvchi o'ziga zarar yetkazish yoki hayotdan umid uzish haqida yozsa, darh
 Javobni FAQAT quyidagi JSON formatida qaytaring, boshqa hech narsa qo'shmang:
 
 {
-  "reply": "Yuqoridagi qoidalarga muvofiq tuzilgan to'liq javob",
+  "reply": "Yuqoridagi qoidalarga muvofiq tuzilgan to'liq javob (raqamlangan maslahatlar bilan)",
   "emotion": "Foydalanuvchining asosiy hissiyoti (masalan: Xavotir, Tushkunlik, Quvonch, Yolg'izlik, Charchoq)",
   "sentimentScore": -1.0,
   "riskLevel": "LOW/MEDIUM/HIGH",
@@ -106,14 +121,32 @@ Javobni FAQAT quyidagi JSON formatida qaytaring, boshqa hech narsa qo'shmang:
     }
 
     async generateProfileSummary(moodData: any[], analysisData: any[]) {
-        return this.withRetry(async () => {
+        const fallbackResponse = {
+            summary: "AI tahlil xizmati hozirda so'rovlar limitiga yetdi. Iltimos, keyinroq qayta urinib ko'ring. Shu bilan birga, kayfiyat yozuvlaringiz muvaffaqiyatli saqlandi. 😊",
+            advices: [
+                "Har kuni kamida 10 daqiqa meditatsiya qiling",
+                "Yetarli uxlashga harakat qiling (7-8 soat)",
+                "Yaqinlaringiz bilan vaqt o'tkazing",
+                "Toza havoda sayr qilish kayfiyatni yaxshilaydi",
+                "Kundalik yutuqlaringizni yozib boring"
+            ],
+            chartData: {
+                labels: ["Quvonch", "Tinchlik", "Xavotir"],
+                data: [40, 35, 25]
+            }
+        };
+
+        try {
             const model = this.genAI.getGenerativeModel({
-                model: 'gemini-2.5-flash-lite',
+                model: 'gemini-2.5-flash',
+                generationConfig: { responseMimeType: 'application/json' },
             });
 
-            const systemInstruction = `Siz professional va empatik Psixologsiz.
+            const systemInstruction = `QATIY BUYRUQ: Siz FAQAT sof JSON obyekti qaytarasiz. Hech qanday matn, markdown, \`\`\`json\`\`\` yoki izoh YOZMANG. Javob { bilan boshlanib } bilan tugashi SHART.
+
+Siz professional va empatik Psixologsiz.
 Quyida foydalanuvchining so'nggi kayfiyat yozuvlari va AI tahlillari berilgan.
-Buni tahlil qilib, quyidagi JSON formatda javob bering va undan boshqa matn qo'shmang:
+Buni tahlil qilib, FAQAT quyidagi JSON formatda javob bering:
 {
   "summary": "Foydalanuvchining psixologik holati bo'yicha yakuniy professional xulosa (kamida 3-4 gap)",
   "advices": [
@@ -135,7 +168,18 @@ chartData qismi foydalanuvchining hissiyotlarining uchrash foizi yoki soni (umum
             const responseText = result.response.text();
 
             return this.extractJSON(responseText);
-        }, 'Profil Xulosasi');
+        } catch (error: any) {
+            const isQuota = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
+            const is503 = error?.status === 503 || error?.message?.includes('503');
+
+            if (isQuota || is503) {
+                console.warn(`⚠️ Profil xulosasi: API limit yoki server xatolik. Fallback javob qaytarilmoqda.`);
+                return fallbackResponse;
+            }
+
+            console.error('❌ Gemini API Xatolik (Profil Xulosasi):', error?.message || error);
+            return fallbackResponse;
+        }
     }
 
     private async withRetry<T>(fn: () => Promise<T>, context: string, retries = 3, delay = 1000): Promise<T> {
@@ -172,58 +216,14 @@ chartData qismi foydalanuvchining hissiyotlarining uchrash foizi yoki soni (umum
     }
 
     private extractJSON(text: string) {
-        let cleanedText = text;
         try {
-            // 1. Remove markdown syntax if present (```json ... ```)
-            const markdownMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-            if (markdownMatch) {
-                cleanedText = markdownMatch[1];
-            } else {
-                // 2. Find the first '{' and the last '}'
-                const firstBrace = text.indexOf('{');
-                const lastBrace = text.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    cleanedText = text.substring(firstBrace, lastBrace + 1);
-                } else {
-                    // 3. AI returned plain text (no JSON at all) — wrap it
-                    console.warn('⚠️ AI javob JSON formatida kelmadi. Matn wrap qilinmoqda.');
-                    return {
-                        reply: text.trim(),
-                        emotion: 'Neytral',
-                        sentimentScore: 0,
-                        riskLevel: 'LOW',
-                        suggestions: '',
-                        confidence: 0.5,
-                    };
-                }
-            }
-
-            // Clean common AI mistakes
-            cleanedText = cleanedText
-                .replace(/\\"/g, '"') // some models double-escape
-                .trim();
-
-            return JSON5.parse(cleanedText);
+            return JSON.parse(text);
         } catch (error) {
             console.error('\n=============================================');
             console.error('❌ JSON Parsing Error');
             console.error('Raw AI Response:', text);
             console.error('Error Details:', error);
             console.error('=============================================\n');
-
-            // 4. Final fallback: parsing failed but text exists — wrap it
-            if (text && text.trim().length > 0) {
-                console.warn('⚠️ JSON parse failed. Fallback: matnni reply sifatida qaytarish.');
-                return {
-                    reply: text.trim(),
-                    emotion: 'Xatolik',
-                    sentimentScore: 0,
-                    riskLevel: 'LOW',
-                    suggestions: '',
-                    confidence: 0.5,
-                };
-            }
-
             throw new Error('Javobni tahlil qilishda xatolik yuz berdi');
         }
     }
