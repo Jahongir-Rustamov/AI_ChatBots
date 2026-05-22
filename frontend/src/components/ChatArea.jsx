@@ -6,11 +6,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const MarkdownComponents = (theme) => ({
-    p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-    ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 space-y-1.5" {...props} />,
-    ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-4 space-y-1.5" {...props} />,
-    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-    strong: ({ node, ...props }) => <strong className="font-semibold tracking-wide" style={{ color: '#ffffff' }} {...props} />,
+    p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" style={{ color: theme === 'light' ? '#0f172a' : '#e5e7eb' }} {...props} />,
+    ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 space-y-1.5" style={{ color: theme === 'light' ? '#0f172a' : '#e5e7eb' }} {...props} />,
+    ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-4 space-y-1.5" style={{ color: theme === 'light' ? '#0f172a' : '#e5e7eb' }} {...props} />,
+    li: ({ node, ...props }) => <li className="pl-1" style={{ color: theme === 'light' ? '#0f172a' : '#e5e7eb' }} {...props} />,
+    strong: ({ node, ...props }) => <strong className="font-semibold tracking-wide" style={{ color: theme === 'light' ? '#0f172a' : '#ffffff' }} {...props} />,
     blockquote: ({ node, ...props }) => (
         <blockquote
             className="border-l-4 pl-3 my-3 italic rounded-r-lg py-2 pr-4 shadow-sm"
