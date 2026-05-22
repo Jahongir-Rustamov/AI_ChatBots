@@ -7,7 +7,7 @@ const Home = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="h-screen bg-[#030712] text-white flex flex-col overflow-hidden">
+        <div className="h-screen theme-bg-primary theme-text-primary flex flex-col overflow-hidden transition-colors duration-300">
             <Navbar onMenuToggle={() => setSidebarOpen((prev) => !prev)} />
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

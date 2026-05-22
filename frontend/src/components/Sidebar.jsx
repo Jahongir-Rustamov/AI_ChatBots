@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { Plus, Trash2, MessageSquare, Loader2 } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
+import { useThemeStore } from "../store/useThemeStore";
 
 const Sidebar = ({ isOpen, onClose }) => {
     const { chats, selectedChat, fetchChats, addChat, deleteChat, selectChat, isChatsLoading, isPendingChat } = useChatStore();
+    const { theme } = useThemeStore();
 
     useEffect(() => {
         fetchChats();
@@ -29,22 +31,31 @@ const Sidebar = ({ isOpen, onClose }) => {
             {/* Mobile backdrop overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+                    className="fixed inset-0 z-30 lg:hidden transition-opacity duration-300"
+                    style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
                     onClick={onClose}
                 />
             )}
 
             <aside
                 className={`fixed lg:relative top-16 lg:top-0 left-0 h-[calc(100vh-4rem)] lg:h-full w-72 lg:w-64 z-40 lg:z-auto
-          bg-[#03060e] border-r border-neutral-800/60 flex flex-col
-          transition-transform duration-300 ease-in-out
+          border-r flex flex-col
+          transition-all duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+                style={{
+                    backgroundColor: theme === 'light' ? '#ffffff' : '#03060e',
+                    borderColor: theme === 'light' ? 'rgba(5, 150, 105, 0.15)' : 'rgba(255, 255, 255, 0.1)'
+                }}
             >
                 {/* Sidebar Header */}
-                <div className="p-4 border-b border-neutral-800/60">
+                <div className="p-4 border-b" style={{ borderColor: theme === 'light' ? 'rgba(5, 150, 105, 0.15)' : 'rgba(255, 255, 255, 0.1)' }}>
                     <button
                         onClick={handleNewChat}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] rounded-xl text-white font-semibold text-sm transition-all shadow-lg shadow-blue-600/20"
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white font-semibold text-sm transition-all shadow-lg active:scale-[0.98]"
+                        style={{
+                            backgroundColor: theme === 'light' ? '#10b981' : '#2563eb',
+                            boxShadow: theme === 'light' ? '0 4px 20px rgba(16, 185, 129, 0.2)' : '0 4px 20px rgba(37, 99, 235, 0.2)'
+                        }}
                     >
                         <Plus className="w-4 h-4" />
                         Yangi Suhbat
@@ -52,40 +63,75 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Chat List */}
-                <div className="flex-1 overflow-y-auto py-2 space-y-1 px-2 scrollbar-thin">
+                <div className="flex-1 overflow-y-auto py-2 space-y-1 px-2 custom-scrollbar">
                     {isChatsLoading ? (
                         <div className="flex items-center justify-center py-10">
-                            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                            <Loader2 className="w-6 h-6 animate-spin" style={{ color: theme === 'light' ? '#059669' : '#10b981' }} />
                         </div>
                     ) : (
                         <>
                             {/* Pending new chat indicator */}
                             {isPendingChat && (
-                                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-600/10 border border-blue-600/30 text-white mb-1">
-                                    <MessageSquare className="w-4 h-4 shrink-0 text-blue-500" />
-                                    <span className="text-sm truncate text-neutral-300 italic">Yangi suhbat...</span>
+                                <div
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border mb-1"
+                                    style={{
+                                        backgroundColor: theme === 'light' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.1)',
+                                        borderColor: theme === 'light' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.3)',
+                                        color: theme === 'light' ? '#0f172a' : '#ffffff'
+                                    }}
+                                >
+                                    <MessageSquare className="w-4 h-4 shrink-0" style={{ color: theme === 'light' ? '#059669' : '#10b981' }} />
+                                    <span className="text-sm truncate italic" style={{ color: theme === 'light' ? '#475569' : '#d4d4d8' }}>Yangi suhbat...</span>
                                 </div>
                             )}
 
                             {chats.length === 0 && !isPendingChat ? (
                                 <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                                    <MessageSquare className="w-10 h-10 text-neutral-700 mb-3" strokeWidth={1} />
-                                    <p className="text-neutral-500 text-sm">Hali suhbat yo'q</p>
-                                    <p className="text-neutral-600 text-xs mt-1">Yangi suhbat boshlang</p>
+                                    <MessageSquare
+                                        className="w-10 h-10 mb-3"
+                                        strokeWidth={1}
+                                        style={{ color: theme === 'light' ? '#cbd5e1' : '#404040' }}
+                                    />
+                                    <p className="text-sm" style={{ color: theme === 'light' ? '#64748b' : '#737373' }}>Hali suhbat yo'q</p>
+                                    <p className="text-xs mt-1" style={{ color: theme === 'light' ? '#94a3b8' : '#525252' }}>Yangi suhbat boshlang</p>
                                 </div>
                             ) : (
                                 chats.map((chat) => (
                                     <div
                                         key={chat.id}
                                         onClick={() => handleSelectChat(chat)}
-                                        className={`group flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all
-                                          ${selectedChat?.id === chat.id && !isPendingChat
-                                                ? "bg-blue-600/10 border border-blue-600/30 text-white"
-                                                : "hover:bg-white/5 border border-transparent text-neutral-400 hover:text-white"
-                                            }`}
+                                        className={`group flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all border`}
+                                        style={{
+                                            backgroundColor: selectedChat?.id === chat.id && !isPendingChat
+                                                ? (theme === 'light' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.1)')
+                                                : 'transparent',
+                                            borderColor: selectedChat?.id === chat.id && !isPendingChat
+                                                ? (theme === 'light' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.3)')
+                                                : 'transparent',
+                                            color: selectedChat?.id === chat.id && !isPendingChat
+                                                ? (theme === 'light' ? '#0f172a' : '#ffffff')
+                                                : (theme === 'light' ? '#64748b' : '#a3a3a3')
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (selectedChat?.id !== chat.id || isPendingChat) {
+                                                e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(5, 150, 105, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (selectedChat?.id !== chat.id || isPendingChat) {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            <MessageSquare className={`w-4 h-4 shrink-0 ${selectedChat?.id === chat.id && !isPendingChat ? "text-blue-500" : "text-neutral-600"}`} />
+                                            <MessageSquare
+                                                className={`w-4 h-4 shrink-0`}
+                                                style={{
+                                                    color: selectedChat?.id === chat.id && !isPendingChat
+                                                        ? (theme === 'light' ? '#059669' : '#10b981')
+                                                        : (theme === 'light' ? '#94a3b8' : '#525252')
+                                                }}
+                                            />
                                             <span className="text-sm truncate">{chat.title}</span>
                                         </div>
                                         <button
